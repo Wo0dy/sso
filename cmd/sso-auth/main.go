@@ -29,6 +29,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	statsdClient, err := auth.NewStatsdClient(opts.StatsdHost, opts.StatsdPort)
+	if err != nil {
+		logger.Error(err, "error creating statsd client")
+		os.Exit(1)
+	}
+
 	authMux, err := auth.NewAuthenticatorMux(opts)
 	if err != nil {
 		logger.Error(err, "error creating new AuthenticatorMux")
@@ -44,7 +50,7 @@ func main() {
 		Addr:         fmt.Sprintf(":%d", opts.Port),
 		ReadTimeout:  opts.TCPReadTimeout,
 		WriteTimeout: opts.TCPWriteTimeout,
-		Handler:      auth.NewLoggingHandler(os.Stdout, timeoutHandler, opts.RequestLogging, authenticator.StatsdClient),
+		Handler:      auth.NewLoggingHandler(os.Stdout, timeoutHandler, opts.RequestLogging, statsdClient),
 	}
 
 	logger.Fatal(s.ListenAndServe())
