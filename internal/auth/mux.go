@@ -7,6 +7,8 @@ import (
 	"github.com/buzzfeed/sso/internal/auth/providers"
 	log "github.com/buzzfeed/sso/internal/pkg/logging"
 	"github.com/buzzfeed/sso/internal/pkg/options"
+
+	"github.com/datadog/datadog-go/statsd"
 )
 
 type AuthenticatorMux struct {
@@ -14,7 +16,7 @@ type AuthenticatorMux struct {
 	authenticators []*Authenticator
 }
 
-func NewAuthenticatorMux(opts *Options) (*AuthenticatorMux, error) {
+func NewAuthenticatorMux(opts *Options, statsdClient *statsd.Client) (*AuthenticatorMux, error) {
 	logger := log.NewLogEntry()
 
 	emailValidator := func(p *Authenticator) error {
@@ -43,7 +45,7 @@ func NewAuthenticatorMux(opts *Options) (*AuthenticatorMux, error) {
 			emailValidator,
 			SetProvider(idp),
 			SetCookieStore(opts, idpSlug),
-			AssignStatsdClient(opts),
+			AssignStatsdClient(statsdClient),
 		)
 		if err != nil {
 			logger.Error(err, "error creating new Authenticator")

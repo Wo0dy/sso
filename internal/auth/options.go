@@ -13,7 +13,8 @@ import (
 
 	"github.com/buzzfeed/sso/internal/auth/providers"
 	"github.com/buzzfeed/sso/internal/pkg/groups"
-	log "github.com/buzzfeed/sso/internal/pkg/logging"
+
+	"github.com/datadog/datadog-go/statsd"
 	"github.com/spf13/viper"
 )
 
@@ -38,6 +39,7 @@ import (
 // CookieRefresh - duration - refresh the cookie after this duration default 0
 // CookieSecure - bool - set secure (HTTPS) cookie flag
 // CookieHTTPOnly - bool - set httponly cookie flag
+// DefaultProvider - string - specify the default provider
 // RequestTimeout - duration - overall request timeout
 // AuthCodeSecret - string - the seed string for secure auth codes (optionally base64 encoded)
 // GroupCacheProviderTTL - time.Duration - cache TTL for the group-cache provider used for on-demand group caching
@@ -104,7 +106,10 @@ type Options struct {
 
 	// These options allow for other providers besides Google, with potential overrides.
 	Provider         string `mapstructure:"provider"`
+	ProviderSlug     string `mapstructure:"provider_slug"`
 	ProviderServerID string `mapstructure:"provider_server_id"`
+
+	DefaultProvider string `mapstructure:"default_provider"`
 
 	SignInURL      string `mapstructure:"signin_url"`
 	RedeemURL      string `mapstructure:"redeem_url"`
@@ -388,19 +393,14 @@ func SetProvider(provider providers.Provider) func(*Authenticator) error {
 
 // AssignStatsdClient is function that takes in an Options struct and assigns a statsd client
 // to the proxy and provider.
-func AssignStatsdClient(opts *Options) func(*Authenticator) error {
+func AssignStatsdClient(statsdClient *statsd.Client) func(*Authenticator) error {
 	return func(proxy *Authenticator) error {
-		logger := log.NewLogEntry()
+		proxy.StatsdClient = statsdClient
 
-		StatsdClient, err := NewStatsdClient(opts.StatsdHost, opts.StatsdPort)
-		if err != nil {
-			return fmt.Errorf("error setting up statsd client error=%s", err)
+		if proxy.provider != nil {
+			proxy.provider.SetStatsdClient(statsdClient)
 		}
-		logger.WithStatsdHost(opts.StatsdHost).WithStatsdPort(opts.StatsdPort).Info(
-			"statsd client is running")
 
-		proxy.StatsdClient = StatsdClient
-		proxy.provider.SetStatsdClient(StatsdClient)
 		return nil
 	}
 }

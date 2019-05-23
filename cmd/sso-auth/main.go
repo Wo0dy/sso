@@ -7,7 +7,6 @@ import (
 
 	"github.com/buzzfeed/sso/internal/auth"
 	log "github.com/buzzfeed/sso/internal/pkg/logging"
-	"github.com/buzzfeed/sso/internal/pkg/options"
 )
 
 func init() {
@@ -35,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authMux, err := auth.NewAuthenticatorMux(opts)
+	authMux, err := auth.NewAuthenticatorMux(opts, statsdClient)
 	if err != nil {
 		logger.Error(err, "error creating new AuthenticatorMux")
 		os.Exit(1)
